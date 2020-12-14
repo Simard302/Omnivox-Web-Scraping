@@ -8,8 +8,7 @@ import http.cookiejar
 from bs4 import BeautifulSoup as soup
 import userInfo
 
-
-# Opens connection, saves page, closes
+# Basically a config specific to Omnivox
 ovxUrl = "johnabbott.omnivox.ca/"
 https_ovxUrl = "https://"+ovxUrl
 ovxLoginUrl = https_ovxUrl + "/login"
@@ -24,44 +23,51 @@ headers={"Content-Type":"text/html",
 "Origin":https_ovxUrl,
 "Referer":https_ovxUrl}
 
-cookie_jar = http.cookiejar.CookieJar()
-opener = bOpener(httpCP(cookie_jar))
-install_opener(opener)
+def setupCookies():
+    cookie_jar = http.cookiejar.CookieJar()
+    opener = bOpener(httpCP(cookie_jar))
+    install_opener(opener)
 
-# Getting login page and parsing the HTML
-request = uReq(https_ovxUrl)
-response = uOpen(request)
-contents = response.read()
+def getParsedPage(url):
+    request = uReq(url)
+    response = uOpen(url)
+    return response.read()
 
-# Getting the token
-html = contents.decode("utf-8")
-mark_start = '<input id="k" name="k" type="hidden" value="'
-mark_end = '">'
-start_index = html.find(mark_start) + len(mark_start)
-end_index = html.find(mark_end, start_index)
-token = html[start_index:end_index]
+def login():
+    setupCookies()
+    contents = getParsedPage(https_ovxUrl)
 
-# Making payload
-payload = {
-    "k":token,
-    "TypeLogin":"PostSolutionLogin",
-    "TypeIdentification":"Etudiant",
-    "StatsEnvUsersNbCouleurs":"24",
-    "StatsEnvUsersResolution":"767",
-    "NoDA":userInfo['username'],
-    "PasswordEtu":userInfo['password']
-}
-data = uEncode(payload)
-binary_data = data.encode("UTF-8")
+    # Getting the token
+    html = contents.decode("utf-8")
+    mark_start = '<input id="k" name="k" type="hidden" value="'
+    mark_end = '">'
+    start_index = html.find(mark_start) + len(mark_start)
+    end_index = html.find(mark_end, start_index)
+    token = html[start_index:end_index]
 
-# Requesting page
-request = uReq(ovxLoginUrl, binary_data, headers)
-response = uOpen(request)
-contents = response.read()
+    # Making payload
+    payload = {
+        "k":token,
+        "TypeLogin":"PostSolutionLogin",
+        "TypeIdentification":"Etudiant",
+        "StatsEnvUsersNbCouleurs":"24",
+        "StatsEnvUsersResolution":"767",
+        "NoDA":userInfo['username'],
+        "PasswordEtu":userInfo['password']
+    }
+    data = uEncode(payload)
+    binary_data = data.encode("UTF-8")
 
-contents = contents.decode("utf-8")
-index = contents.find(check_string)
-if index != -1:
-    print('we found it')
-else:
-    print('we messed up')
+    # Requesting page
+    request = uReq(ovxLoginUrl, binary_data, headers)
+    response = uOpen(request)
+    contents = response.read()
+
+    contents = contents.decode("utf-8")
+    index = contents.find(check_string)
+    if index != -1:
+        print('we found it')
+    else:
+        print('we messed up')
+
+login()
