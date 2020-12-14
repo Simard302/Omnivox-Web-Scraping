@@ -25,7 +25,7 @@ class LeaSession:
             url=https_ovxUrl2+assignmentURL,
             headers=headers,
             cookies=self.cookies,
-            allow_redirects=True
+            allow_redirects=False
         )
         self.cookies.update(assignmentsPage.cookies)
         print(self.cookies)
