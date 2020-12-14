@@ -8,6 +8,7 @@ async def main():
     if not session:
         return print('Login failed')
 
-    print(session.getClassNameList())
+    leaSession = session.startLeaSession()
+    leaSession.getAssignments()
 
 asyncio.run(main())

@@ -6,11 +6,44 @@ import asyncio
 # Basically a config specific to Omnivox
 ovxUrl = "johnabbott.omnivox.ca"
 https_ovxUrl = "https://"+ovxUrl
+https_ovxUrl2 = "https://www-jac-ovx.omnivox.ca"
 ovxLoginUrl = https_ovxUrl + "/intr/Module/Identification/Login/Login.aspx?ReturnUrl=/intr"
 headers={
     "User-Agent": "Mozilla/5.0"
 }
 
+class LeaSession:
+    def __init__(self, cookies:RequestsCookieJar, lea_html:str):
+        self.cookies = cookies
+        self.lea_html = lea_html
+        self.lea_html_query = pq(lea_html)
+
+
+    def getAssignments(self):
+        assignmentURL = self.lea_html_query('a[id="lienDTRV"]').attr("href")
+        assignmentsPage = requests.get(
+            url=https_ovxUrl2+assignmentURL,
+            headers=headers,
+            cookies=self.cookies,
+            allow_redirects=True
+        )
+        self.cookies.update(assignmentsPage.cookies)
+        print(self.cookies)
+        print(assignmentsPage.text)
+
+        """d = pq(assignmentsPage.text)
+        assignmentsHTML = d('tr[class="LigneListTrav1"]')
+        print(assignmentsPage.text)"""
+
+        """assignmentDict = {}
+        for tab in assignmentsHTML :
+            name = tab('a[class="RemTrav_Sommaire_NomCours"]').text
+            listAssignmentsOfClassHTML = tab('span[class="RemTrav_Sommaire_ProchainsTravaux"]')
+            listAssignmentsOfClass = []
+            for assignment in listAssignmentsOfClassHTML :
+                listAssignmentsOfClass.append(assignment.text)
+            assignmentDict[name] = listAssignmentsOfClass
+        #print(assignmentDict)"""
 
 class OmnivoxSession:
     def __init__ (self, cookies: RequestsCookieJar, homepage_html: str):
@@ -27,7 +60,17 @@ class OmnivoxSession:
             cookies=self.cookies,
             allow_redirects=True
         )
+        self.cookies.update(lea_page.cookies)
+        print(self.cookies)
         return lea_page
+
+    def startLeaSession(self):
+        lea_page = self.getLeaPage()
+        cookies = self.cookies
+        return LeaSession(
+            cookies=cookies,
+            lea_html=lea_page.text
+        )
 
 
     def getClassNameList(self):
@@ -68,14 +111,16 @@ async def login(username, password):
 
     cookies = login_page.cookies
     cookies.update(login_post_response.cookies)
+    print(cookies)
 
     homepage_response = requests.post(
         url=https_ovxUrl + "/intr/",
         headers=headers,
         cookies=cookies,
-        allow_redirects=True
+        allow_redirects=False
     )
     cookies.update(homepage_response.cookies)
+    print(cookies)
 
     return OmnivoxSession(
         cookies=cookies,
