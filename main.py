@@ -1,74 +1,79 @@
-from urllib.request import urlopen as uOpen
-from urllib.request import Request as uReq
-from urllib.request import build_opener as bOpener
-from urllib.request import HTTPCookieProcessor as httpCP
-from urllib.request import install_opener as install_opener
-from urllib.parse import urlencode as uEncode
-import http.cookiejar
+import requests
+from requests.cookies import RequestsCookieJar
+from pyquery import PyQuery as pq
+import asyncio
 from bs4 import BeautifulSoup as soup
 import userInfo
 
 # Basically a config specific to Omnivox
-ovxUrl = "johnabbott.omnivox.ca/"
+ovxUrl = "johnabbott.omnivox.ca"
 https_ovxUrl = "https://"+ovxUrl
-ovxLoginUrl = https_ovxUrl + "/login"
+ovxLoginUrl = https_ovxUrl + "/intr/Module/Identification/Login/Login.aspx?ReturnUrl=/intr"
 userInfo = {
     'username': userInfo.username,
     'password': userInfo.password
 }
 check_string = "Quit"
-headers={"Content-Type":"text/html",
-"User-agent":"Mozilla/5.0 Chrome/81.0.4044.92",    # Chrome 80+ as per web search
-"Host":ovxUrl,
-"Origin":https_ovxUrl,
-"Referer":https_ovxUrl}
+headers={
+    "User-Agent": "Mozilla/5.0"
+}
 
-def setupCookies():
-    cookie_jar = http.cookiejar.CookieJar()
-    opener = bOpener(httpCP(cookie_jar))
-    install_opener(opener)
 
-def getParsedPage(url):
-    request = uReq(url)
-    response = uOpen(url)
-    return response.read()
+class OmnivoxSession:
+    def __init__ (self, cookies: RequestsCookieJar, homepage_html: str):
+        self.cookies = cookies
+        self.homepage_html = homepage_html
+        self.homepage_html_query = pq(homepage_html)
 
-def login():
-    setupCookies()
-    contents = getParsedPage(https_ovxUrl)
 
-    # Getting the token
-    html = contents.decode("utf-8")
-    mark_start = '<input id="k" name="k" type="hidden" value="'
-    mark_end = '">'
-    start_index = html.find(mark_start) + len(mark_start)
-    end_index = html.find(mark_end, start_index)
-    token = html[start_index:end_index]
+
+async def login():
+    login_page = requests.get(
+        url=https_ovxUrl + "/intr/Module/Identification/Login/Login.aspx?ReturnUrl=/intr",
+        headers=headers,
+    )
 
     # Making payload
+    d = pq(login_page.text)
+    token = d("input[name='k']").attr("value")
     payload = {
-        "k":token,
-        "TypeLogin":"PostSolutionLogin",
-        "TypeIdentification":"Etudiant",
-        "StatsEnvUsersNbCouleurs":"24",
-        "StatsEnvUsersResolution":"767",
-        "NoDA":userInfo['username'],
-        "PasswordEtu":userInfo['password']
+        "NoDA": userInfo['username'],
+        "PasswordEtu": userInfo['password'],
+        "TypeIdentification": "Etudiant",
+        "k": token
     }
-    data = uEncode(payload)
-    binary_data = data.encode("UTF-8")
 
-    # Requesting page
-    request = uReq(ovxLoginUrl, binary_data, headers)
-    response = uOpen(request)
-    contents = response.read()
+    login_post_response = requests.post(
+        url=ovxLoginUrl,
+        data=payload,
+        headers=headers,
+        cookies=login_page.cookies,
+        allow_redirects=False
+    )
+    if login_post_response.status_code != 302:
+        return None
 
-    contents = contents.decode("utf-8")
-    index = contents.find(check_string)
-    if index != -1:
-        print('we found it')
-    else:
-        print('we messed up')
+    cookies = login_page.cookies
+    cookies.update(login_post_response.cookies)
+
+    homepage_response = requests.post(
+        url=https_ovxUrl + "/intr/",
+        headers=headers,
+        cookies=cookies,
+        allow_redirects=True
+    )
+    cookies.update(homepage_response.cookies)
+
+    return OmnivoxSession(
+        cookies=cookies,
+        homepage_html=homepage_response.text
+    )
 
 
-login()
+async def main():
+    session = await login()
+    if not session:
+        return print('Login failed')
+
+
+asyncio.run(main())
