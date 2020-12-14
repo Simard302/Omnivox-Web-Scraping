@@ -35,6 +35,14 @@ class OmnivoxSession:
         )
         return lea_page
 
+    def getClassNameList(self):
+        lea_page = self.getLeaPage()
+        d = pq(lea_page.text)
+        classesHTML = d('div[class="card-panel-title"]')
+        classes = []
+        for classLine in classesHTML:
+            classes.append(classLine.text)
+        return classes
 
 async def login():
     login_page = requests.get(
@@ -84,5 +92,6 @@ async def main():
     if not session:
         return print('Login failed')
 
+    session.getClassNameList()
 
 asyncio.run(main())
