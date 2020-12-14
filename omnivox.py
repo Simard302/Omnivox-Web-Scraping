@@ -39,10 +39,11 @@ class LeaSession:
             for tab in assignmentsHTML :
                 d = pq(tab)
                 name = d('a[class="RemTrav_Sommaire_NomCours"]')[0].text.strip()
-                listAssignmentsOfClassHTML = d('span[class="RemTrav_Sommaire_ProchainsTravaux"]')
-                listAssignmentsOfClass = []
+                listAssignmentsOfClassHTML = d('a[class="RemTrav_Sommaire_ProchainsTravaux"]')
+                listAssignmentsDescOfClassHTML = d('span[class="RemTrav_Sommaire_ProchainsTravauxDesc"]')
+                listAssignmentsOfClass = {}
                 for assignment in listAssignmentsOfClassHTML :
-                    listAssignmentsOfClass.append(assignment.text)
+                    listAssignmentsOfClass[assignment.text.strip()] = listAssignmentsDescOfClassHTML[listAssignmentsOfClassHTML.index(assignment)].text.replace('\n', '').replace('\r', '').replace(' ', '').replace('\xa0', ' ')
                 assignmentDict[name] = listAssignmentsOfClass
         print(assignmentDict)
 
