@@ -13,8 +13,9 @@ headers={
 }
 
 class LeaSession:
-    def __init__(self, cookies:RequestsCookieJar, lea_html:str):
-        self.cookies = cookies
+    def __init__(self, session, lea_html:str):
+        self.cookies = RequestsCookieJar()
+        self.cookies.update(session.cookies)
         self.lea_html = lea_html
         self.lea_html_query = pq(lea_html)
 
@@ -22,14 +23,14 @@ class LeaSession:
     def getAssignments(self):
         assignmentURL = self.lea_html_query('a[id="lienDTRV"]').attr("href")
         assignmentsPage = requests.get(
-            url=https_ovxUrl2+assignmentURL,
+            url= https_ovxUrl2+assignmentURL,
             headers=headers,
             cookies=self.cookies,
             allow_redirects=False
         )
         self.cookies.update(assignmentsPage.cookies)
         print(self.cookies)
-        print(assignmentsPage.text)
+        print(assignmentsPage.status_code)
 
         """d = pq(assignmentsPage.text)
         assignmentsHTML = d('tr[class="LigneListTrav1"]')
@@ -62,13 +63,13 @@ class OmnivoxSession:
         )
         self.cookies.update(lea_page.cookies)
         print(self.cookies)
+        print(lea_page.status_code)
         return lea_page
 
     def startLeaSession(self):
         lea_page = self.getLeaPage()
-        cookies = self.cookies
         return LeaSession(
-            cookies=cookies,
+            self,
             lea_html=lea_page.text
         )
 
