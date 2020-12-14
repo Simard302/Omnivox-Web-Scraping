@@ -9,7 +9,7 @@ https_ovxUrl = "https://"+ovxUrl
 https_ovxUrl2 = "https://www-jac-ovx.omnivox.ca"
 ovxLoginUrl = https_ovxUrl + "/intr/Module/Identification/Login/Login.aspx?ReturnUrl=/intr"
 headers={
-    "User-Agent": "Mozilla/5.0"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36"
 }
 
 class LeaSession:
@@ -55,15 +55,13 @@ class OmnivoxSession:
 
     def getLeaPage(self):
         leaURL = self.homepage_html_query('a[class="raccourci id-service_CVIE   code-groupe_lea"]').attr("href")
-        lea_page = requests.get(
+        lea_page = doRequest(self.cookies, requests.get(
             url=https_ovxUrl+leaURL,
             headers=headers,
             cookies=self.cookies,
-            allow_redirects=True
-        )
+            allow_redirects=False
+        ))
         self.cookies.update(lea_page.cookies)
-        print(self.cookies)
-        print(lea_page.status_code)
         return lea_page
 
     def startLeaSession(self):
@@ -83,6 +81,29 @@ class OmnivoxSession:
             classes.append(classLine.text)
         return classes
 
+def doRequest(cookies, response):
+    location = response.headers.get('Location')
+    print(response.status_code)
+    print(response.url)
+    cookies.update(response.cookies)
+    if location :
+        baseURL = ""
+        if https_ovxUrl in response.url:
+           baseURL = https_ovxUrl
+        elif https_ovxUrl2 in response.url:
+            baseURL = https_ovxUrl2
+        if not https_ovxUrl in location and not https_ovxUrl2 in location:
+            location = baseURL+location
+
+        page = doRequest(cookies, requests.get(
+            url=location,
+            headers=headers,
+            cookies=cookies,
+            allow_redirects=False
+        ))
+        return page
+    else :
+        return response
 
 async def login(username, password):
     login_page = requests.get(
@@ -112,7 +133,6 @@ async def login(username, password):
 
     cookies = login_page.cookies
     cookies.update(login_post_response.cookies)
-    print(cookies)
 
     homepage_response = requests.post(
         url=https_ovxUrl + "/intr/",
@@ -120,8 +140,8 @@ async def login(username, password):
         cookies=cookies,
         allow_redirects=False
     )
+    homepage_response = doRequest(homepage_response.cookies, homepage_response)
     cookies.update(homepage_response.cookies)
-    print(cookies)
 
     return OmnivoxSession(
         cookies=cookies,
