@@ -25,6 +25,15 @@ class OmnivoxSession:
         self.homepage_html = homepage_html
         self.homepage_html_query = pq(homepage_html)
 
+    def getLeaPage(self):
+        leaURL = self.homepage_html_query('a[class="raccourci id-service_CVIE   code-groupe_lea"]').attr("href")
+        lea_page = requests.get(
+            url=https_ovxUrl+leaURL,
+            headers=headers,
+            cookies=self.cookies,
+            allow_redirects=True
+        )
+        return lea_page
 
 
 async def login():
