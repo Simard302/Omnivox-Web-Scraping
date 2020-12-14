@@ -25,6 +25,7 @@ class OmnivoxSession:
         self.homepage_html = homepage_html
         self.homepage_html_query = pq(homepage_html)
 
+
     def getLeaPage(self):
         leaURL = self.homepage_html_query('a[class="raccourci id-service_CVIE   code-groupe_lea"]').attr("href")
         lea_page = requests.get(
@@ -35,6 +36,7 @@ class OmnivoxSession:
         )
         return lea_page
 
+
     def getClassNameList(self):
         lea_page = self.getLeaPage()
         d = pq(lea_page.text)
@@ -44,7 +46,8 @@ class OmnivoxSession:
             classes.append(classLine.text)
         return classes
 
-async def login():
+
+async def login(username, password):
     login_page = requests.get(
         url=https_ovxUrl + "/intr/Module/Identification/Login/Login.aspx?ReturnUrl=/intr",
         headers=headers,
@@ -54,8 +57,8 @@ async def login():
     d = pq(login_page.text)
     token = d("input[name='k']").attr("value")
     payload = {
-        "NoDA": userInfo['username'],
-        "PasswordEtu": userInfo['password'],
+        "NoDA": username,
+        "PasswordEtu": password,
         "TypeIdentification": "Etudiant",
         "k": token
     }
@@ -88,10 +91,12 @@ async def login():
 
 
 async def main():
-    session = await login()
+    username = input("What is your Omnivox username: ")
+    password = input("What is your Omnivox password: ")
+    session = await login(username, password)
     if not session:
         return print('Login failed')
 
-    session.getClassNameList()
+    print(session.getClassNameList())
 
 asyncio.run(main())
