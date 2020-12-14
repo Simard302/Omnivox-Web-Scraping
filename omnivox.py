@@ -22,29 +22,29 @@ class LeaSession:
 
     def getAssignments(self):
         assignmentURL = self.lea_html_query('a[id="lienDTRV"]').attr("href")
-        assignmentsPage = requests.get(
+
+        assignmentsPage = doRequest(self.cookies, requests.get(
             url= https_ovxUrl2+assignmentURL,
             headers=headers,
             cookies=self.cookies,
-            allow_redirects=False
-        )
+            allow_redirects=True
+        ))
         self.cookies.update(assignmentsPage.cookies)
-        print(self.cookies)
-        print(assignmentsPage.status_code)
 
-        """d = pq(assignmentsPage.text)
-        assignmentsHTML = d('tr[class="LigneListTrav1"]')
-        print(assignmentsPage.text)"""
-
-        """assignmentDict = {}
-        for tab in assignmentsHTML :
-            name = tab('a[class="RemTrav_Sommaire_NomCours"]').text
-            listAssignmentsOfClassHTML = tab('span[class="RemTrav_Sommaire_ProchainsTravaux"]')
-            listAssignmentsOfClass = []
-            for assignment in listAssignmentsOfClassHTML :
-                listAssignmentsOfClass.append(assignment.text)
-            assignmentDict[name] = listAssignmentsOfClass
-        #print(assignmentDict)"""
+        d = pq(assignmentsPage.text)
+        assignmentDict = {}
+        for i in range(1, 3):
+            d = pq(assignmentsPage.text)
+            assignmentsHTML = d('tr[class="LigneListTrav'+str(i)+'"]')
+            for tab in assignmentsHTML :
+                d = pq(tab)
+                name = d('a[class="RemTrav_Sommaire_NomCours"]')[0].text.strip()
+                listAssignmentsOfClassHTML = d('span[class="RemTrav_Sommaire_ProchainsTravaux"]')
+                listAssignmentsOfClass = []
+                for assignment in listAssignmentsOfClassHTML :
+                    listAssignmentsOfClass.append(assignment.text)
+                assignmentDict[name] = listAssignmentsOfClass
+        print(assignmentDict)
 
 class OmnivoxSession:
     def __init__ (self, cookies: RequestsCookieJar, homepage_html: str):
