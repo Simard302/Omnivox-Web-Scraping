@@ -1,7 +1,6 @@
 import requests
 from requests.cookies import RequestsCookieJar
 from pyquery import PyQuery as pq
-import asyncio
 
 # Basically a config specific to Omnivox
 ovxUrl = "johnabbott.omnivox.ca"
